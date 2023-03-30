@@ -33,6 +33,10 @@ async function main() {
 
     //Give Approval to Contract to safely transfer tokens
     const approval = await tokenContract.setApprovalForAll(contract.address, true);
+    const approvalTx = await approval.wait();
+    console.log("Approval successful");
+    console.log(approvalTx.blockHash);
+
 
 
 }
