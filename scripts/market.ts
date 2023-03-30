@@ -11,14 +11,14 @@ async function main() {
     const contract = await contractFactory.deploy();
     console.log("contract deployed");
     const contractTx = await contract.deployTransaction.wait();
-    console.log(contractTx.contractAddress)
+    console.log("Marketplace Contract:",contractTx.contractAddress)
 
     //Deploy test token contract
     const tokenFactory = new TestSHIT__factory(deployer);
     console.log('Deploying contract')
     const tokenContract = await tokenFactory.deploy();
     const tokenContractTx = await tokenContract.deployTransaction.wait();
-    console.log(tokenContractTx.contractAddress);
+    console.log("testToken Contract:",tokenContractTx.contractAddress);
 
     //Mint Token 100 Tokens;
     const desAddress = deployer.address;
@@ -28,7 +28,11 @@ async function main() {
     
     const minter = await tokenContract.mint(desAddress, id, mint_amount,data)
     const mintTx = await minter.wait();
-    console.log(mintTx.contractAddress)
+    console.log("ERC1155 NFT successfully minted");
+    console.log("Hash of Token Minting",mintTx.blockHash);
+
+    //Give Approval to Contract to safely transfer tokens
+    const approval = await tokenContract.setApprovalForAll(contract.address, true);
 
 
 }
