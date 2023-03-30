@@ -1,4 +1,4 @@
-import { providers } from "ethers";
+
 import { ethers } from "hardhat";
 import { ETHNFTMarketplace__factory } from "../typechain-types";
 
