@@ -1,16 +1,20 @@
-
 import { ethers } from "hardhat";
 import { ETHNFTMarketplace__factory } from "../typechain-types";
 
 async function main() {
-    const accounts = await ethers.getSigners();
-    const signer = accounts[0]
-    const contractFactory = new ETHNFTMarketplace__factory(signer);
+    const [deployer,account1,account2] = await ethers.getSigners();
+
+
+    // This is the contract for deploying the Marketplace
+    const contractFactory = new ETHNFTMarketplace__factory(deployer);
     console.log("Deploying contract");
     const contract = await contractFactory.deploy();
     console.log("contract deployed");
     const contractTx = await contract.deployTransaction.wait();
     console.log(contractTx)
+
+    //Deploy test token contract
+    
 
 
 }
