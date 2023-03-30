@@ -3,11 +3,10 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
+import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 
 
-
-
-contract ETHNFTMarketplace {
+contract ETHNFTMarketplace is ERC1155Holder{
     struct Item {
         address nftContract;
         uint256 tokenId;
@@ -27,12 +26,12 @@ contract ETHNFTMarketplace {
     function addItem(address _nftContract, uint256 _tokenId, uint256 _amount, string memory _name, uint256 _price) public {
         itemCount++;
 
-        // Check that the item being listed for sale is an ERC1155 token and the owner has the token
+        // Check that the item being listed for sale is an ERC1155 token
         require(IERC1155(_nftContract).balanceOf(msg.sender, _tokenId) >= _amount, "Only token owner can list for sale");
 
-        //Get approval for marketplace contract to transfer the tokens on behalf of the original owner
+        //Approve the marketplace contract to transfer the tokens on behalf of the original owner
         // IERC1155(_nftContract).setApprovalForAll(address(this), true);
-        IERC1155(_nftContract).setApprovalForAll(msg.sender, true);
+
         
 
         // Create a new Item and add it to the items mapping
@@ -46,8 +45,7 @@ contract ETHNFTMarketplace {
         require(!items[_itemId].sold, "Item already sold");
         require(msg.value >= items[_itemId].price * _amount, "Insufficient funds");
         require(items[_itemId].amount >= _amount, "Insufficient stock");
-        require(IERC1155(items[_itemId].nftContract).isApprovedForAll(items[_itemId].seller, address(this)), "ERC1155: caller is not token owner or approved");
-
+       
         // Transfer the NFT to the buyer
         IERC1155(items[_itemId].nftContract).safeTransferFrom(items[_itemId].seller, msg.sender, items[_itemId].tokenId, _amount, "Transfer sent");
 
@@ -63,7 +61,17 @@ contract ETHNFTMarketplace {
         }
 
         emit ItemSold(_itemId, msg.sender);
+        onERC1155Received(address(this), msg.sender, _itemId, _amount, "");
     }
+
+    // function onERC1155Received(address(this), seller, uint256, uint256, bytes memory) public pure override returns (bytes4) {
+
+    //     return this.onERC1155Received.selector;
+    // }
+
+    // function onERC1155BatchReceived(address, address, uint256[] memory, uint256[] memory, bytes memory) public pure override returns (bytes4) {
+    //     return this.onERC1155BatchReceived.selector;
+    // }
 
     
 }
