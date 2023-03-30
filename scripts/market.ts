@@ -37,6 +37,13 @@ async function main() {
     console.log("Approval successful");
     console.log(approvalTx.blockHash);
 
+    //add Tokens to Marketplace
+    const listTokens = await contract.addItem(tokenContract.address, 1, 10, "b", 1 );
+    const listTokensTx = await listTokens.wait();
+    console.log("Tokens successfully listed on marketplace");
+
+    
+
 
 
 }
