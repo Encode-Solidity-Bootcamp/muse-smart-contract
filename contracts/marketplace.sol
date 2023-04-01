@@ -26,6 +26,10 @@ contract Marketplace is ERC1155Holder,Ownable{
     //@notice Marketplace Platform fees
     uint256 public fees;
 
+    //@notice This is the list of all 
+    Item[] public allItems;
+    
+
     modifier checkPauseMarketPlace() {
         _checkPauseMarketPlace();
         _;
@@ -41,15 +45,18 @@ contract Marketplace is ERC1155Holder,Ownable{
 
     function addItem(address _nftContract, uint256 _tokenId, uint256 _amount, string memory _name, uint256 _price) public {
         require(!isPaused, "Marketplace is paused");
-        itemCount++;
-
+        
         // Check that the item being listed for sale is an ERC1155 token
+        //@dev this method is used because  "owner" is a state variable and cannot be called
         require(IERC1155(_nftContract).balanceOf(msg.sender, _tokenId) >= _amount, "Only token owner can list for sale");
 
-        
+        itemCount++;
 
         // Create a new Item and add it to the items mapping
         items[itemCount] = Item(_nftContract, _tokenId, _amount, _name, _price, payable(msg.sender), false);
+
+        //Add individual items to AllItems when each item is created
+        allItems.push(items[itemCount]);
 
         emit ItemAdded(itemCount, _nftContract, _tokenId, _amount, _name, _price, msg.sender);
     }
@@ -89,4 +96,22 @@ contract Marketplace is ERC1155Holder,Ownable{
         require(!isPaused, "Marketplace is already paused");
         isPaused = true; 
     }
+    function checkPlatformTotalFees() external view{
+        address(this).balance;
+    }
+    
+    function withdrawPlatformFees(address payable _toAddress, uint256 _amountFees) external payable onlyOwner{
+        payable(_toAddress).transfer(_amountFees);
+    }
+    function emergencyWithdrawAll(address payable _toAddress) external payable onlyOwner{
+        require(address(this).balance != 0);
+        withdrawAll(_toAddress);
+    }
+
+    function withdrawAll(address payable _toAddress) internal onlyOwner{
+        (bool success, ) = _toAddress.call{value: address(this).balance}("");
+        require(success, "Withdrawal failed");
+    }
+
+    
 }
