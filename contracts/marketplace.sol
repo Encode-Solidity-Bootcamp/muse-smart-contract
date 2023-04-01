@@ -80,7 +80,7 @@ contract Marketplace is ERC1155Holder,Ownable{
     }
 
 
-    //@dev the functions pauseMarketPlace and resumeMarketPlace is used to pause transaction and can only be called by the owner contract 
+    // @dev the functions pauseMarketPlace and resumeMarketPlace is used to pause transaction and can only be called by the owner contract 
     function resumeMarketPlace() public onlyOwner {
         require(isPaused, "Marketplace is not paused");
         isPaused = false; 
