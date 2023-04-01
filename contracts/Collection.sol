@@ -26,7 +26,7 @@ contract Collection is ERC1155Supply, Ownable{
 
     
     ///@dev hardcoded marketplace address for easy approval
-    address public marketPlace //update the market address here once the marketplace contract is deployed
+    address public marketPlace; //update the market address here once the marketplace contract is deployed
     string public collectionInfoHash; //CollectionInfo Hash(cid of collection)
     uint[] public quantities; //the quantities of each token
     string[] public allTokenURIs; //an array of all tokenURIs
