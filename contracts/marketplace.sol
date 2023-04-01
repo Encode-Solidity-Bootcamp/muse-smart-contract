@@ -4,9 +4,10 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
 import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 
-contract ETHNFTMarketplace is ERC1155Holder{
+contract Marketplace is ERC1155Holder,Ownable{
     struct Item {
         address nftContract;
         uint256 tokenId;
@@ -20,17 +21,28 @@ contract ETHNFTMarketplace is ERC1155Holder{
     mapping(uint256 => Item) public items;
     uint256 public itemCount;
 
+
+    bool public paused;
+
+    modifier checkPauseMarketPlace() {
+        _checkPauseMarketPlace();
+        _;
+    }
+
+    function _checkPauseMarketPlace() internal view virtual{
+        require(!paused, "Marketplace is paused");
+    }
+    
+
     event ItemAdded(uint256 itemId, address nftContract, uint256 tokenId, uint256 amount, string name, uint256 price, address seller);
     event ItemSold(uint256 itemId, address buyer);
 
     function addItem(address _nftContract, uint256 _tokenId, uint256 _amount, string memory _name, uint256 _price) public {
+        require(!paused, "Marketplace is paused");
         itemCount++;
 
         // Check that the item being listed for sale is an ERC1155 token
         require(IERC1155(_nftContract).balanceOf(msg.sender, _tokenId) >= _amount, "Only token owner can list for sale");
-
-        //Approve the marketplace contract to transfer the tokens on behalf of the original owner
-        // IERC1155(_nftContract).setApprovalForAll(address(this), true);
 
         
 
@@ -41,6 +53,7 @@ contract ETHNFTMarketplace is ERC1155Holder{
     }
 
     function buyItem(uint256 _itemId, uint256 _amount) public payable {
+        require(!paused, "Marketplace is paused");
         require(items[_itemId].nftContract != address(0), "Item does not exist");
         require(!items[_itemId].sold, "Item already sold");
         require(msg.value >= items[_itemId].price * _amount, "Insufficient funds");
@@ -64,14 +77,17 @@ contract ETHNFTMarketplace is ERC1155Holder{
         onERC1155Received(address(this), msg.sender, _itemId, _amount, "");
     }
 
-    // function onERC1155Received(address(this), seller, uint256, uint256, bytes memory) public pure override returns (bytes4) {
 
-    //     return this.onERC1155Received.selector;
-    // }
+    // @dev the functions pauseMarketPlace and resumeMarketPlace is used to pause transaction and can only be called by the owner contract 
+    function pauseMarketPlace() public onlyOwner {
+        require(!paused, "Marketplace is already paused");
+        paused = true; 
+    }
 
-    // function onERC1155BatchReceived(address, address, uint256[] memory, uint256[] memory, bytes memory) public pure override returns (bytes4) {
-    //     return this.onERC1155BatchReceived.selector;
-    // }
+    function resumeMarketPlace() public onlyOwner {
+        require(paused, "Marketplace is not paused");
+        paused = false; 
+    }
 
     
 }
