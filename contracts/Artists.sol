@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity >=0.7.0 <0.9.0;
 
+///@dev This contract is in charge of managing the state of all artists on the muse platform
 contract Artists {
     // ///@notice - Raised when an address is already an artist.
     // error AlreadyAnArtistErr(string message);
