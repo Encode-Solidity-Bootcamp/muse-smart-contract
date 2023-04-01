@@ -21,8 +21,10 @@ contract Marketplace is ERC1155Holder,Ownable{
     mapping(uint256 => Item) public items;
     uint256 public itemCount;
 
-
-    bool public paused;
+    //@notice this is used to check if contract is active or paused
+    bool public isPaused;
+    //@notice Marketplace Platform fees
+    uint256 public fees;
 
     modifier checkPauseMarketPlace() {
         _checkPauseMarketPlace();
@@ -30,7 +32,7 @@ contract Marketplace is ERC1155Holder,Ownable{
     }
 
     function _checkPauseMarketPlace() internal view virtual{
-        require(!paused, "Marketplace is paused");
+        require(!isPaused, "Marketplace is paused");
     }
     
 
@@ -38,7 +40,7 @@ contract Marketplace is ERC1155Holder,Ownable{
     event ItemSold(uint256 itemId, address buyer);
 
     function addItem(address _nftContract, uint256 _tokenId, uint256 _amount, string memory _name, uint256 _price) public {
-        require(!paused, "Marketplace is paused");
+        require(!isPaused, "Marketplace is paused");
         itemCount++;
 
         // Check that the item being listed for sale is an ERC1155 token
@@ -53,7 +55,7 @@ contract Marketplace is ERC1155Holder,Ownable{
     }
 
     function buyItem(uint256 _itemId, uint256 _amount) public payable {
-        require(!paused, "Marketplace is paused");
+        require(!isPaused, "Marketplace is paused");
         require(items[_itemId].nftContract != address(0), "Item does not exist");
         require(!items[_itemId].sold, "Item already sold");
         require(msg.value >= items[_itemId].price * _amount, "Insufficient funds");
@@ -78,16 +80,13 @@ contract Marketplace is ERC1155Holder,Ownable{
     }
 
 
-    // @dev the functions pauseMarketPlace and resumeMarketPlace is used to pause transaction and can only be called by the owner contract 
-    function pauseMarketPlace() public onlyOwner {
-        require(!paused, "Marketplace is already paused");
-        paused = true; 
-    }
-
+    //@dev the functions pauseMarketPlace and resumeMarketPlace is used to pause transaction and can only be called by the owner contract 
     function resumeMarketPlace() public onlyOwner {
-        require(paused, "Marketplace is not paused");
-        paused = false; 
+        require(isPaused, "Marketplace is not paused");
+        isPaused = false; 
     }
-
-    
+    function pauseMarketPlace() public onlyOwner {
+        require(!isPaused, "Marketplace is already paused");
+        isPaused = true; 
+    }
 }
