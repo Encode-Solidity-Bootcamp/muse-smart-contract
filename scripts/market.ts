@@ -75,7 +75,7 @@ async function main() {
     
     const amount = { value:ethers.BigNumber.from("1")};
     const tId = { value:ethers.BigNumber.from("1")};
-    const buyNFT = await contract.connect(account1).buyItem(1,10, { value: ethers.utils.parseEther("1")});
+    const buyNFT = await contract.connect(account1).buyItem(1,10, { value: ethers.utils.parseEther("100")});
     const buyNFTtx = await buyNFT.wait();
     const listedNFTt = await contract.items(1);
     console.log("Sold :",listedNFTt.sold);
