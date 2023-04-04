@@ -25,7 +25,7 @@ async function main() {
     //Mint Token 100 Tokens;
     const desAddress = deployer.address;
     const id = ethers.utils.parseEther("1");
-    const mint_amount = ethers.utils.parseEther("100");
+    const mint_amount = ethers.utils.parseEther("1000");
     const data = "0x293232";
     
     const minter = await tokenContract.mint(desAddress, id, mint_amount,data)
@@ -48,7 +48,7 @@ async function main() {
     const pauseMPTx = await pauseMP.wait();
     console.log("MarketPlace successfully Paused with hash !:", pauseMPTx.blockHash)
 
-    const checkMP = await contract.paused();
+    const checkMP = await contract.isPaused();
     if(checkMP){
         const resumeMP = await contract.connect(deployer).resumeMarketPlace();
         const resumeMPTx = await resumeMP.wait();
@@ -57,6 +57,7 @@ async function main() {
 
     //add Tokens to Marketplace
     const price = 1;
+    
     const listTokens = await contract.connect(deployer).addItem(tokenContract.address, ethers.utils.parseEther(price.toFixed(18)), 10, "baddest Team 11", 1 );
     const listTokensTx = await listTokens.wait();
     console.log("Token successfully added to marketplace")
@@ -74,12 +75,29 @@ async function main() {
     
     const amount = { value:ethers.BigNumber.from("1")};
     const tId = { value:ethers.BigNumber.from("1")};
-    const buyNFT = await contract.connect(account1).buyItem(1,10, { value: ethers.utils.parseEther("1")});
+    const buyNFT = await contract.connect(account1).buyItem(1,2, { value: ethers.utils.parseEther("100")});
     const buyNFTtx = await buyNFT.wait();
     const listedNFTt = await contract.items(1);
     console.log("Sold :",listedNFTt.sold);
     console.log("Buy Operation Successful")
     console.log("This is the txHash of purchase", buyNFTtx.blockHash)
+
+    //retrieve the list of all items in the marketplace
+
+    const count = await contract.itemCount();
+    const countNumber = count.toNumber();
+    const itemsArray = [];
+    
+    console.log(countNumber)
+    for(let i = 1; i <= countNumber; i++ ){
+        const retrieveList =await contract.items(i);
+        console.log("The items should follow");
+        itemsArray.push(retrieveList)
+        console.log("End of loop")
+    }
+
+    console.log(itemsArray);
+    
 
 
 
