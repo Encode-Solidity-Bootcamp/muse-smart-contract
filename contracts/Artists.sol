@@ -25,14 +25,19 @@ contract Artists {
     }
 
     ///@dev event for new artist sign up
-    event newArtistJoined(uint id, uint dateJoined, address artistAddress, string artistDetails);
+    event newArtistJoined(
+        uint id,
+        uint dateJoined,
+        address artistAddress,
+        string artistDetails
+    );
 
     ///@dev Array to store all artists
     Artist[] public artists;
 
     ///@dev  modifier for only artists
     modifier onlyArtists() {
-        if(isArtist[msg.sender] == false) {
+        if (isArtist[msg.sender] == false) {
             revert OnlyArtistsErr();
         }
         _;
@@ -40,7 +45,7 @@ contract Artists {
 
     ///@dev modifier for only non artists
     modifier onlyNonArtists() {
-        if(isArtist[msg.sender] == true) {
+        if (isArtist[msg.sender] == true) {
             revert AlreadyAnArtistErr();
         }
         _;
@@ -48,23 +53,29 @@ contract Artists {
 
     ///@dev function for signing up new artists
     ///@param _artistDetails - cid hash of artist's details
-    function newArtistSignup(string memory _artistDetails) external onlyNonArtists {
+    function newArtistSignup(
+        string memory _artistDetails
+    ) external onlyNonArtists {
         require(bytes(_artistDetails).length > 0);
         unchecked {
             artistCount++;
         }
-    Artist memory newArtist = Artist({
-        id: artistCount,
-        dateJoined: block.timestamp,
-        artistAddress: msg.sender,
-        artistDetails: _artistDetails
-    });
-     isArtist[msg.sender] = true;
-     artists.push(newArtist);
-     addressToArtist[msg.sender] = newArtist;
+        Artist memory newArtist = Artist({
+            id: artistCount,
+            dateJoined: block.timestamp,
+            artistAddress: msg.sender,
+            artistDetails: _artistDetails
+        });
+        isArtist[msg.sender] = true;
+        artists.push(newArtist);
+        addressToArtist[msg.sender] = newArtist;
 
-     emit newArtistJoined(artistCount, block.timestamp, msg.sender, _artistDetails);
-     
+        emit newArtistJoined(
+            artistCount,
+            block.timestamp,
+            msg.sender,
+            _artistDetails
+        );
     }
 
     //TO-DO
@@ -72,21 +83,28 @@ contract Artists {
     // a function to get a random collection, could be in another file, I just put it here so I won't forget
 
     ///@dev function to update artist details
-    function updateArtistDetails(string memory _newArtistDetails, uint256 _artistId) external onlyArtists {
+    function updateArtistDetails(
+        string memory _newArtistDetails,
+        uint256 _artistId
+    ) external onlyArtists {
         require(artists[_artistId].artistAddress == msg.sender);
         artists[_artistId].artistDetails = _newArtistDetails;
         addressToArtist[msg.sender].artistDetails = _newArtistDetails;
     }
 
     ///@dev function to get all artists
-    function getAllArtists() external view returns(Artist[] memory) {
+    function getAllArtists() external view returns (Artist[] memory) {
         return artists;
+    }
+
+    function getArtist(
+        uint256 _artistId
+    ) external view returns (Artist memory) {
+        return artists[_artistId];
     }
 
     ///@dev function to check if an address is an artist
     function checkIfArtist() external view returns (bool) {
         return isArtist[msg.sender];
     }
-
-
 }
