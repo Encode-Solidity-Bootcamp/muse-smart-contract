@@ -2,7 +2,7 @@
 pragma solidity >=0.7.0 <0.9.0;
 
 import {Collection} from "./Collection.sol";
-import {Artist} from "./Artists.sol";
+import {Artists} from "./Artists.sol";
 
 contract Factory {
     ///@dev artists to an array of collection contracts mapping
@@ -40,6 +40,7 @@ contract Factory {
     function mintCollection(address _addr) external {
         Collection addr = Collection(_addr);
         (bool success, ) = address(addr).call(abi.encodeWithSignature("mintAll()"));
+        require(success);
     }
 
     ///@dev function to get all the collections created by this artist

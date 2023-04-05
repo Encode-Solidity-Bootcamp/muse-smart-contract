@@ -99,7 +99,7 @@ contract Collection is ERC1155Supply, Ownable{
     function setApprovalforAll(address _operator, bool _approved) 
     public 
      {
-        if(operator == marketPlace) {
+        if(_operator == marketPlace) {
             setApprovalforAll(_operator, _approved);
         }
     }
