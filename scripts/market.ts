@@ -1,7 +1,8 @@
 import { Signer } from "ethers";
 import { ethers } from "hardhat";
 import { Marketplace__factory, TestSHIT__factory } from "../typechain-types";
-import { marketplaceSol } from "../typechain-types/contracts";
+import { parse } from "path";
+
 
 async function main() {
     const [deployer,account1,account2] = await ethers.getSigners();
@@ -24,8 +25,8 @@ async function main() {
 
     //Mint Token 100 Tokens;
     const desAddress = deployer.address;
-    const id = ethers.utils.parseEther("1");
-    const mint_amount = ethers.utils.parseEther("1000");
+    const id = 1;
+    const mint_amount = 1000;
     const data = "0x293232";
     
     const minter = await tokenContract.mint(desAddress, id, mint_amount,data)
@@ -56,16 +57,21 @@ async function main() {
     }
 
     //add Tokens to Marketplace
-    const price = 1;
+    const price = ethers.utils.parseEther("0.0001");
+    const idListToken = 1;
+    const amountToken = 10;
+    const dataBytes = "Unit one";
+
     
-    const listTokens = await contract.connect(deployer).addItem(tokenContract.address, ethers.utils.parseEther(price.toFixed(18)), 10, "baddest Team 11", 1 );
+    const listTokens = await contract.connect(deployer).addItem(tokenContract.address,idListToken, amountToken, price, dataBytes);   
     const listTokensTx = await listTokens.wait();
     console.log("Token successfully added to marketplace")
     console.log("Add token BlockHash",listTokensTx.blockHash);
+    console.log("total gas used:",listTokensTx.gasUsed)
 
     //List Token listed in Marketplace
 
-    const listedNFT = await contract.items(1);
+    const listedNFT = await contract.items(idListToken);
     console.log("Token detail:", listedNFT.name);
 
     //Attempt to buy 
@@ -73,11 +79,13 @@ async function main() {
     console.log("account 1 Balance:",ethers.utils.formatEther(checkBalance));
     console.log("price of NFT", listedNFT.price);
     
+    const a1 =await account1.getBalance();
+    console.log( "this is the balance of a1:",a1)
     const amount = { value:ethers.BigNumber.from("1")};
     const tId = { value:ethers.BigNumber.from("1")};
-    const buyNFT = await contract.connect(account1).buyItem(1,2, { value: ethers.utils.parseEther("100")});
+    const buyNFT = await contract.connect(account1).buyItem(idListToken,2, { value: price.mul(amountToken)});
     const buyNFTtx = await buyNFT.wait();
-    const listedNFTt = await contract.items(1);
+    const listedNFTt = await contract.items(idListToken);
     console.log("Sold :",listedNFTt.sold);
     console.log("Buy Operation Successful")
     console.log("This is the txHash of purchase", buyNFTtx.blockHash)
@@ -88,15 +96,21 @@ async function main() {
     const countNumber = count.toNumber();
     const itemsArray = [];
     
-    console.log(countNumber)
+    console.log("Total Item in the list:",countNumber)
     for(let i = 1; i <= countNumber; i++ ){
         const retrieveList =await contract.items(i);
         console.log("The items should follow");
         itemsArray.push(retrieveList)
         console.log("End of loop")
+
+        const Ay = await contract.isItemUnlisted(i);
+        console.log("Unlisted",Ay);
     }
 
     console.log(itemsArray);
+    const yo = await tokenContract.balanceOf(account1.address, 1)
+    console.log(yo)
+    
     
 
 

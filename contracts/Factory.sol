@@ -53,5 +53,3 @@ contract Factory {
         return allCollections;
     }
 }
-
-
