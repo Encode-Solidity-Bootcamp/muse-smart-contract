@@ -8,6 +8,7 @@ pragma solidity ^0.8.0;
 /// @custom:experimental This is an experimental contract.
 
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
+import "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
 import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
@@ -21,9 +22,9 @@ contract Marketplace is ERC1155Holder,Ownable{
         address nftContract;
         uint256 tokenId;
         uint256 amount;
-        string name;
         uint256 price;
         address payable seller;
+        string name;
         bool sold;
     }
 
@@ -57,8 +58,6 @@ contract Marketplace is ERC1155Holder,Ownable{
         return isItemUnlisted[_itemId];
     }
 
-    
-    
     modifier _checkIfERC1155(address _nftAddress){
         require(checkIfERC1155Status(_nftAddress), "Contract is not ERC1155 compliant");
     _;
@@ -68,17 +67,19 @@ contract Marketplace is ERC1155Holder,Ownable{
         return IERC165(_nftContract).supportsInterface(type(IERC1155).interfaceId);
     }
 
+
     
     //@dev Event for when Item is added and sold on the contract
     event ItemAdded(uint256 itemId, address nftContract, uint256 tokenId, uint256 amount, string name, uint256 price, address seller);
     event ItemSold(uint256 itemId, address buyer);
+    event ItemUnlisted(uint256 itemId,address seller);
 
     //@notice this contract requires permission to be granted to the contract 
     //@dev function to add NFTs to the marketPlace
-    function addItem(address _nftContract, uint256 _tokenId, uint256 _amount, string memory _name, uint256 _price) public _isPaused  _checkIfERC1155(_nftContract){
+    function addItem(address _nftContract, uint256 _tokenId, uint256 _amount, uint256 _price ,string memory _name ) public _isPaused _checkIfERC1155(_nftContract) {
     
-        require(_amount > 0, "Amount must be greater than zero");
-        require(_nftContract != address(0), "Invalid  Nft contract address");
+        require(_amount > 0 && _nftContract != address(0), "Invalid input parameters");
+
         /// @notice Check that the item being listed for sale is an ERC1155 token
         /// @dev this method is used because  "owner" is a state variable and cannot be called
         require(IERC1155(_nftContract).balanceOf(msg.sender, _tokenId) >= _amount, "Only token owner can list for sale");
@@ -86,7 +87,7 @@ contract Marketplace is ERC1155Holder,Ownable{
         itemCount++;
 
         /// @notice Add a new Item and add it to the items mapping
-        items[itemCount] = Item(_nftContract, _tokenId, _amount, _name, _price, payable(msg.sender), false);
+        items[itemCount] = Item(_nftContract, _tokenId, _amount,  _price, payable(msg.sender), _name, false);
         /// @notice Ensure Item is Listed
         isItemUnlisted[itemCount] = false;
 
@@ -97,41 +98,42 @@ contract Marketplace is ERC1155Holder,Ownable{
     /// @dev the function buys the listed Items on the marketplace
     function buyItem(uint256 _itemId, uint256 _amount) public payable _isPaused {
         /// @dev mapping imported into storage to save gas
-        Item storage item = items[_itemId];
-
-        require(_amount > 0, "Amount must be greater than zero");
-        require(item.nftContract != address(0), "Item does not exist");
-        require(!_isItemUnlisted(_itemId), "Item is unlisted");
-        require(!item.sold, "Item already sold");
+        Item memory item = items[_itemId];
+        
+        require(_amount > 0 && item.nftContract != address(0), "Invalid parameter");
+        // require(items[_itemId].nftContract != address(0), "Item does not exist");
+        require(!_isItemUnlisted(_itemId) && !item.sold, "Item Unavailable");
+        // require(!item.sold, "Item already sold");
         require(item.amount >= _amount, "You can't buy more than what's available");
 
         /// @dev This calculates the platform fees
         uint256 costprice = items[_itemId].price.mul(_amount);
         uint256 feesPercentage = fees.div(100);
         uint256 platformFees = costprice.mul(feesPercentage);
-        uint256 totalCost = costprice.add(platformFees);
+        uint256 creatorProfit = costprice.sub(platformFees);
 
-        require(msg.value >= totalCost, "Insufficient funds");
+        require(msg.value >= costprice, "Insufficient funds");
         require(item.amount >= _amount, "Insufficient stock");
 
         /// @notice Update the stock of the item
-        item.amount -= _amount;
+        items[_itemId].amount -= _amount;
 
         /// @dev Mark the item as sold if all items are sold out
-        if (item.amount == 0) {
-            item.sold = true;
+        if (items[_itemId].amount == 0) {
+            items[_itemId].sold = true;
         }
         
         
         /// @notice Return any excess payment back to the buyer.
-        if (msg.value > totalCost) {
-            payable(msg.sender).transfer(msg.value.sub(totalCost));
-            }
+        
         /// @notice Transfer the NFT to the buyer
         IERC1155(item.nftContract).safeTransferFrom(item.seller, msg.sender, item.tokenId, _amount, "Transfer sent");
-
+        
+        if (msg.value > costprice) {
+                    payable(msg.sender).transfer(msg.value.sub(costprice));
+                    }
         /// @notice Transfer the funds to the seller
-        item.seller.transfer(costprice);
+        item.seller.transfer(creatorProfit);
 
         /// @dev Tigger an event on completion
         emit ItemSold(_itemId, msg.sender);
@@ -139,11 +141,12 @@ contract Marketplace is ERC1155Holder,Ownable{
     }
 
     function unlistItem(uint256 _itemId) public {
-        require(!items[_itemId].sold, "Cannot unlist sold item");
+        require(!items[_itemId].sold, "Cannot unlist soldout item");
         require(items[_itemId].amount > 0, "Item with the given ID does not exist");
         require(items[_itemId].seller == msg.sender, "Only the seller can unlist the item");
         
         isItemUnlisted[_itemId] = true;
+        emit ItemUnlisted(_itemId, msg.sender);
     }
 
 

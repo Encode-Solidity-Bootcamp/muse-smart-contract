@@ -52,5 +52,3 @@ contract Factory {
         return allCollections;
     }
 }
-
-
