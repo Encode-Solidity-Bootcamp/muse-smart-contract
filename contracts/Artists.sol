@@ -98,9 +98,9 @@ contract Artists {
     }
 
     function getArtist(
-        uint256 _artistId
+        address _artistAddress
     ) external view returns (Artist memory) {
-        return artists[_artistId];
+        return addressToArtist[_artistAddress]; 
     }
 
     ///@dev function to check if an address is an artist
