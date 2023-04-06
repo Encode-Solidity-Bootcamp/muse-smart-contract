@@ -76,6 +76,10 @@ contract MarketplaceV2 is Ownable {
     //mapping(uint256 => Counters.Counter[]) private listingIdToSoldNftCount;
 
     mapping(uint256 => uint256[]) private listingIdTosoldTokenIds;
+    mapping(uint256 => uint256[]) private listingIdToAllTokenIds;
+
+    mapping(uint256 => Counters.Counter) private listingIdToListedNftCount;
+    mapping(uint256 => Counters.Counter) private listedIdToSoldNftCount;
 
     //mapping(uint256 => Listing) private tokenIdToListing;
     //mapping(address => mapping(uint256 => bool)) isTokenListed;
@@ -91,27 +95,28 @@ contract MarketplaceV2 is Ownable {
     */
     struct CollectionListing {
         //listing for collection
+        //Counters.Counter listedCount;
+        //Counters.Counter soldNftCount;
         uint256 id;
-        uint256 price;
-        uint256 quantity;
         address collectionAddress;
+        uint32 price;
         address payable seller;
-        State state;
+        //uint256 quantity;
+
         //NFTItems[] nfts;
         //EnumerableMap.Bytes32ToBytes32Map nftItemsMap;
-        uint256[] allTokenIds;
-        Counters.Counter listedCount;
-        Counters.Counter soldNftCount;
+        //uint32[] allTokenIds;
+        State state;
     }
 
-    struct NFTItems {
-        uint256 tokenId;
-        bool sold;
-        address seller;
-        //bool listed;
-    }
+    // struct NFTItems {
+    //     uint256 tokenId;
+    //     bool sold;
+    //     address seller;
+    //     //bool listed;
+    // }
 
-    NFTItems[] public _nfts;
+    // NFTItems[] public _nfts;
 
     // struct NFTItemsListing {
     //     uint256 tokenId;
@@ -127,7 +132,7 @@ contract MarketplaceV2 is Ownable {
 
     function listCollection(
         address _collectionAddress,
-        uint256 _price,
+        uint32 _price,
         uint256 _quantity
     )
         public
@@ -168,27 +173,40 @@ contract MarketplaceV2 is Ownable {
         listingId.increment();
 
         CollectionListing memory listing = CollectionListing({
+            //listedCount: Counters.Counter(0),
+            //soldNftCount: Counters.Counter(0),
             id: listingId.current(),
-            price: _price,
-            quantity: _quantity,
             collectionAddress: _collectionAddress,
+            price: _price,
+            //quantity: _quantity,
+
             seller: payable(msg.sender),
-            state: State.OPEN,
             //nftItemsMap,
-            allTokenIds: _tokenIds,
-            listedCount: Counters.Counter(0),
-            soldNftCount: Counters.Counter(0)
+            //allTokenIds: _tokenIds,
+            state: State.OPEN
+
             //_listedTokenIds
         });
+
+        listingIdToAllTokenIds[listingId.current()] = _tokenIds;
+        //listingIdToListedNftCount[listingId.current()] = Counters.Counter(0);
+        //listedIdToSoldNftCount[listingId.current()] = Counters.Counter(0);
+
+        Counters.Counter storage listedCount = listingIdToListedNftCount[
+            listingId.current()
+        ];
+        //Counters.Counter storage soldCount = listedIdToSoldNftCount[listingId.current()];
 
         listingIdToCollectionListing[listing.id] = listing;
         CollectionListing storage storedListing = listingIdToCollectionListing[
             listing.id
         ];
 
-        uint256 currentCount = storedListing.listedCount.current();
+        uint256 currentCount = listedCount.current();
 
-        uint256[] memory _allTokenIds = listing.allTokenIds;
+        uint256[] memory _allTokenIds = listingIdToAllTokenIds[
+            listingId.current()
+        ];
 
         for (
             uint i = (currentCount + 1);
@@ -202,7 +220,7 @@ contract MarketplaceV2 is Ownable {
             listedNftIdsSet.add(_allTokenIds[currentCount]);
             //listing.listedNFTItemsId.add(listing._tokenIds[listing.listedCount.current()];
 
-            storedListing.listedCount.increment();
+            listedCount.increment();
         }
 
         isCollectionListed[_collectionAddress][listing.id] = true;
@@ -221,6 +239,47 @@ contract MarketplaceV2 is Ownable {
     //function getOwners() {}
 
     ///@dev function to buy items from a particular collection
+
+    function _setListings(
+        uint256 _listingId,
+        uint256 quantity
+    )
+        internal
+        returns (uint256[] memory amounts, uint256[] memory _soldTokenIds)
+    {
+        CollectionListing storage storedListing = listingIdToCollectionListing[
+            _listingId
+        ];
+
+        EnumerableSet.UintSet
+            storage listedNftIdsSet = listingIdTolistedNFTItemsIds[_listingId];
+        EnumerableSet.UintSet
+            storage soldNftIdsSet = listingIdToSoldNFTItemsIds[_listingId];
+
+        Counters.Counter storage listedCount = listingIdToListedNftCount[
+            _listingId
+        ];
+        Counters.Counter storage soldNftCount = listedIdToSoldNftCount[
+            listingId.current()
+        ];
+
+        uint256[] memory _allTokenIds = listingIdToAllTokenIds[_listingId];
+        for (uint i = 0; i <= quantity; i++) {
+            uint256 _soldTokenId = listedNftIdsSet.at(_allTokenIds[i + 1]);
+            //_soldTokenIds.push(_soldTokenId);
+            _soldTokenIds[i] = _soldTokenId;
+            listedNftIdsSet.remove(_soldTokenId);
+            listedCount.decrement();
+            soldNftIdsSet.add(_soldTokenId);
+            soldNftCount.increment();
+            amounts[i] = 1;
+
+            // unchecked {
+            //     ++i;
+            // }
+        }
+    }
+
     function buyListing(uint256 _listingId, uint256 quantity) external payable {
         uint256 listedNftItemsLength = listingIdTolistedNFTItemsIds[_listingId]
             .length();
@@ -256,30 +315,8 @@ contract MarketplaceV2 is Ownable {
         //= new uint256[](quantity);
 
         listingIdToCollectionListing[_listingId] = listing;
-        CollectionListing storage storedListing = listingIdToCollectionListing[
-            listing.id
-        ];
 
-        EnumerableSet.UintSet
-            storage listedNftIdsSet = listingIdTolistedNFTItemsIds[_listingId];
-        EnumerableSet.UintSet
-            storage soldNftIdsSet = listingIdToSoldNFTItemsIds[_listingId];
-
-        uint256[] memory _allTokenIds = listing.allTokenIds;
-        for (uint i = 0; i <= quantity; i++) {
-            uint256 _soldTokenId = listedNftIdsSet.at(_allTokenIds[i + 1]);
-            //_soldTokenIds.push(_soldTokenId);
-            _soldTokenIds[i] = _soldTokenId;
-            listedNftIdsSet.remove(_soldTokenId);
-            storedListing.listedCount.decrement();
-            soldNftIdsSet.add(_soldTokenId);
-            storedListing.soldNftCount.increment();
-            amounts[i] = 1;
-
-            // unchecked {
-            //     ++i;
-            // }
-        }
+        (amounts, _soldTokenIds) = _setListings(_listingId, quantity);
 
         //listingIdToCollectionListing[listingId] = listing;
 
@@ -419,8 +456,9 @@ contract MarketplaceV2 is Ownable {
     /////////////////////MODIFIERS///////////////////////////////
     ///@notice - Modifier to check if the caller is the owner of the token.
     modifier onlyCollectionOwner(
-        address _collectionAddress //uint256 _listingId
-    ) {
+        address _collectionAddress
+    ) //uint256 _listingId
+    {
         Collection addr = Collection(_collectionAddress);
         (bool success, bytes memory data) = address(addr).call(
             abi.encodeWithSignature("owner()")
